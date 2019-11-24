@@ -1,0 +1,192 @@
+---
+title: Analysis of Hellyer Velodrome's attendence, 2017-2019
+author: Fiona Winder
+date: '2019-11-24'
+slug: analysis-hellyer-velodrome-attendence
+categories: []
+tags:
+  - data science
+  - Rstats
+  - cycling
+  - hellyer velodrome
+subtitle: ""
+description: ''
+image: 
+showtoc: false
+
+---
+
+data=read.csv("hellyerresults171819.csv")
+head(data,5)
+attach(data)
+library(dplyr)
+library(ggplot2)
+
+table(Year)
+data$month=substr(as.character(Date), 1,1)
+data$month[data$month== "4"] <- "April"
+data$month[data$month== "5"] <- "May"
+data$month[data$month== "6"] <- "June"
+data$month[data$month== "7"] <- "July"
+data$month[data$month== "8"] <- "August"
+-----------------------
+#Count of unique racers each year
+unique_year= data %>% group_by(Year) %>% summarise(y=n_distinct(Name))
+
+unique_year_bar=ggplot(unique_year, aes(x=factor(Year), y=y, fill=factor(Year))) + 
+	geom_bar(stat="identity",colour="white")+  
+	ggtitle("How many people race each year?", subtitle = "Over the last three years, the number has remained fairly steady with 150-160 racers.")+
+	ylab(NULL)+xlab(NULL)+geom_hline(yintercept=0,color="grey")+ 
+	theme(legend.position='top', plot.title = element_text(size=15),
+	legend.title=element_blank(), axis.ticks = element_blank(), 
+	plot.background = element_rect(fill = "white"), panel.background = element_rect(fill = "white"))
+ggplotly(unique_year_bar)
+-----------------------
+#Count of unique racers each category
+category_year= data %>% filter(RaceComb == "Men 1/2/3"|RaceComb == "Men 3/4/5"|RaceComb == "Women 1/2/3/4/5") %>% group_by(Year,RaceComb) %>% summarise(y=n_distinct(Name)) 
+
+category_year_bar=ggplot(category_year, aes(x=RaceComb, y=y, fill=factor(Year))) +
+	ggtitle("How many people raced in each category?", 
+	subtitle = "The Men 1/2/3 field grew by 20 racers in 2019 in comparison to the previous two years, and \nthe Men 3/4/5 increased by approximately 9 racers each year. In contrast, the Women's has \nstayed roughly the same.")+
+	ylab(NULL)+xlab(NULL)+geom_hline(yintercept=0,color="grey")+ 
+	geom_bar(stat="identity",position='dodge',colour="white") +
+	theme(legend.position='top', plot.title = element_text(size=15),
+	legend.title=element_blank(), axis.ticks = element_blank(), 
+	plot.background = element_rect(fill = "white"), panel.background = element_rect(fill = "white"))
+ggplotly(category_year_bar)
+-----------------------
+#Count of unique racers each month
+month_year= data %>% group_by(Year,month) %>% summarise(y=n_distinct(Name)) 
+month_year_bar=ggplot(month_year, aes(x=month, y=y, fill=factor(Year))) +
+	#scale_x_discrete(breaks=c("4","5","6","7","8"), labels=c("April","May","June","July","August"))+
+	ggtitle("How many people raced each month?", 
+	subtitle = "Races in April are considered pre-season and did not occur in 2017. 
+	\nIt can be seen that each year had a different month with the greatest attendance: 2017 was June, 
+	2018 was May, and 2019 was July.")+
+	ylab(NULL)+xlab(NULL)+geom_hline(yintercept=0,color="grey")+ 
+	geom_bar(stat="identity",position='dodge',color='white') +
+	theme(legend.position='top', plot.title = element_text(size=15),
+	legend.title=element_blank(), axis.ticks = element_blank(), 
+	plot.background = element_rect(fill = "white"), panel.background = element_rect(fill = "white"))
+ggplotly(month_year_bar)
+-----------------------
+#Count of unique racers each Week
+week_year= data %>% group_by(Year,week_number_true) %>% summarise(y=n_distinct(Name)) 
+week_year_bar=ggplot(week_year, aes(x=week_number_true, y=y, color=factor(Year))) +
+	ggtitle("How many people raced each week?", 
+	subtitle = " ")+
+	ylab(NULL)+xlab(NULL)+ 
+	geom_line(size=1) +
+	theme(legend.position='top', plot.title = element_text(size=15),
+	legend.title=element_blank(), axis.ticks = element_blank(), 
+	plot.background = element_rect(fill = "white"), panel.background = element_rect(fill = "white"))
+ggplotly(week_year_bar)
+#average turn out each week. 
+-----------------------
+#Power curve of unique racers by week
+power_week_year=data %>% group_by(Year, Name) %>% summarise(y=n_distinct(week_number_true))
+power_week=power_week_year %>% group_by(Year, y) %>% summarise(z=n_distinct(Name)) %>% mutate(percent = z/sum(z))
+power_week_bar=ggplot(power_week, aes(x=factor(y), y=percent, color=factor(Year),group=factor(Year)))+
+	geom_line(size=1)+
+	stat_summary(geom="line")+
+	scale_y_continuous(labels = scales::percent)+
+	ggtitle("How many races did people do each year?", 
+	subtitle = "Each year, approximately a quarter of people only did one race. In comparison, over a third \nraced 6 or more WNTLs each year, and approximately 17% raced 8 times or more.")+
+	ylab(NULL)+xlab(NULL)+geom_hline(yintercept=0,color="grey")+ 
+	#geom_bar(stat="identity",position='dodge',color='white') +
+	theme(legend.position='top', plot.title = element_text(size=15),
+	legend.title=element_blank(), axis.ticks = element_blank(), 
+	plot.background = element_rect(fill = "white"), panel.background = element_rect(fill = "white"))
+ggplotly(power_week_bar)
+
+-----------------------
+#Age for 2017
+age_2017=data %>% filter(Year==2017 & Age != "#N/A" & Age != "" & Age != 0& Age != 3)
+age_2017$Age <- as.numeric(as.character(age_2017$Age))
+
+#scale_x_discrete(breaks=c("1","2","3","4","5","6"), labels=c("Junior","U25","25-34","35-44","45-54","55+"))
+age_2017$Age_bin[age_2017$Age<19]="1"
+age_2017$Age_bin[age_2017$Age >18 & age_2017$Age<25]="2"
+age_2017$Age_bin[age_2017$Age >24 & age_2017$Age<35]="3"
+age_2017$Age_bin[age_2017$Age >34 & age_2017$Age<45]="4"
+age_2017$Age_bin[age_2017$Age >44 & age_2017$Age<55]="5"
+age_2017$Age_bin[age_2017$Age >54]="6"
+
+age_table = age_2017 %>% group_by(Age_bin) %>% summarize(y=n_distinct(Name))
+age_table
+
+age_graph=ggplot(age_table, aes(x=Age_bin, y=y))+geom_bar(stat="identity",fill="#f9756e")+
+	scale_x_discrete(breaks=c("1","2","3","4","5","6"), labels=c("Junior","U25","25-34","35-44","45-54","55+"))+
+	ggtitle("What were the ages of racers in 2017?", 
+	subtitle = "The average age in 2017 was 33 years old. ")+
+	ylab(NULL)+xlab(NULL)+geom_hline(yintercept=0,color="grey")+ 
+	#geom_bar(stat="identity",position='dodge',color='white') +
+	theme(legend.position='top', plot.title = element_text(size=15),
+	legend.title=element_blank(), axis.ticks = element_blank(), 
+	plot.background = element_rect(fill = "white"), panel.background = element_rect(fill = "white"))
+ggplotly(age_graph)
+
+-----------------------	
+#Average Age
+ave_age=data %>% filter(Year==2017 & Age != "#N/A" & Age != "" & Age != 0& Age != 3)  %>%group_by(Name, Age) %>% summarize(n_distinct(Year))
+Age2=as.numeric(as.character(ave_age$Age))
+ave=mean(Age2, na.rm=T)
+ave
+#32.38816
+-----------------------
+#Average Age by category
+ave_age_racecomb=data %>% filter(Year==2017 & Age != "#N/A" & Age != "" & Age != 0& Age != 3)  %>%group_by(Name, Age, RaceComb) %>% summarize(n_distinct(Year))
+ave_age_racecomb$Age=as.numeric(as.character(ave_age_racecomb$Age))
+aggregate( ave_age_racecomb$Age~ ave_age_racecomb$RaceComb, ave_age_racecomb, mean )
+#Men 1/2/3             36.68750
+#Men 3/4/5             31.37662
+#Women 1/2/3/4/5       33.23529
+--------
+#Find the first race for each Name
+first_race= data %>%
+    group_by(Name) %>%
+    arrange(Date) %>%
+    slice(1L) 
+
+#Find the number of people who started on a given date
+first_race_group = first_race%>% group_by(Year, week_number_true, Date) %>% summarise(n=n_distinct(Name))
+#first_race_group %>% filter(Date == "6/19/2019")
+first_race_group_bar=ggplot(first_race_group, aes(x=factor(week_number_true), y=n, fill=factor(Year))) +
+	ggtitle("How many people first raced each week?", subtitle = " ")+
+	ylab(NULL)+xlab(NULL)+
+	geom_hline(yintercept=0,color="grey")+ 
+	geom_bar(stat="identity",color='white',position = position_dodge2(preserve = "single")) +
+	theme(legend.position='top', plot.title = element_text(size=15),
+	legend.title=element_blank(), axis.ticks = element_blank(), 
+	plot.background = element_rect(fill = "white"), panel.background = element_rect(fill = "white"))+
+	scale_x_discrete(drop=F)+
+	annotate("text", x = 10, y = 8, label="Points districts 2019")
+ggplotly(first_race_group_bar)
+
+#Find the first race for each Name each Year
+first_race_year= data %>%
+    group_by(Year, Name) %>%
+    arrange(Year,week_number_true) %>%
+    slice(1L)
+
+first_race_year_group= first_race_year%>% group_by(Year, month, week_number_true, Date) %>% summarise(n=n_distinct(Name))
+first_race_year_group1=first_race_year_group%>% group_by(Year, month)%>% summarise(n=sum(n))
+first_race_year_percent=first_race_year_group1 %>%
+	group_by(Year, month) %>% 
+  summarize(sum_var1 = sum(n)) %>%
+  group_by(Year) %>%
+  mutate(percent = sum_var1/sum(sum_var1))
+first_race_year_percent
+
+#Plot the first time people race each year 
+first_race_year_bar=ggplot(first_race_year_percent, aes(x=factor(month), y=percent, fill=factor(Year))) +
+	ggtitle("When do people start racing each year?", subtitle = " ")+
+	ylab(NULL)+xlab(NULL)+
+	geom_hline(yintercept=0,color="grey")+ 
+	geom_bar(stat="identity",color='white',position = position_dodge2(preserve = "single")) +
+	theme(legend.position='top', plot.title = element_text(size=15),
+	legend.title=element_blank(), axis.ticks = element_blank(), 
+	plot.background = element_rect(fill = "white"), panel.background = element_rect(fill = "white"))
+ggplotly(first_race_year_bar)
+
+
