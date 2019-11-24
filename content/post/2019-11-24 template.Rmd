@@ -16,7 +16,7 @@ showtoc: false
 
 ---
 
-data=read.csv("hellyerresults171819.csv")
+data=read.csv("https://github.com/fewinder/fionawinder_netlify/blob/master/hellyerresults171819.csv")
 head(data,5)
 attach(data)
 library(dplyr)
